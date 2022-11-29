@@ -108,8 +108,15 @@ class RegisterView(APIView):
         '''
         try:
             data = JSONParser().parse(request)
-            phone_number = data["phoneNumber"]
-            email = data["email"]
+
+            email = None
+            phone_number = None
+            if "phoneNumber" in data.keys():
+                phone_number = data["phoneNumber"]
+
+            if "email" in data.keys():
+                email = data["email"]
+
             password = data['password']
 
             data_obj = {"phoneNumber": phone_number,
@@ -122,10 +129,11 @@ class RegisterView(APIView):
                 user.save()
                 return CreateResponse.success(user.data, status_code=status.HTTP_201_CREATED, message='USER CREATED')
 
-            return CreateResponse.failed(data, status_code=status.HTTP_400_BAD_REQUEST, message='BAD REQUEST')
+            return CreateResponse.failed("Invalid data", status_code=status.HTTP_400_BAD_REQUEST, message='BAD REQUEST')
 
         except Exception as exception:
-            return CreateResponse.failed(exception, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, message='INTERNAL SERVER ERROR')
+            print(exception)
+            return CreateResponse.failed("Failed", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, message='INTERNAL SERVER ERROR')
 
 
 class LoginView(APIView):

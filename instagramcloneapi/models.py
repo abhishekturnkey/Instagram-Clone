@@ -6,7 +6,7 @@ def upload_to(instance, filename):
 
 
 class User(models.Model):
-    phoneNumber = models.CharField(max_length=14, blank=False, unique=True)
+    phoneNumber = models.CharField(max_length=14, blank=True, null=True)
     email = models.CharField(max_length=100, blank=True, null=True, default='')
     password = models.CharField(max_length=100, blank=False)
     created = models.DateTimeField(auto_now_add=True)
