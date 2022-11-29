@@ -35,7 +35,7 @@ MEDIA_URL = '/media/'
 
 ALLOWED_HOSTS = []
 
-APPEND_SLASH=False
+APPEND_SLASH = False
 
 
 # Application definition
@@ -48,8 +48,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    # 'instagramcloneapi.apps.InstagramcloneapiConfig',
-    'instagramcloneapi'
+    'instagramcloneapi.apps.InstagramcloneapiConfig',
+    # 'instagramcloneapi'
 ]
 
 MIDDLEWARE = [
@@ -90,8 +90,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'instagram',
-        'USER': 'abhishek',
-        'PASSWORD': 'abhishek',
+        'USER': 'root',
+        'PASSWORD': 'password',
         'HOST': '127.0.0.1',
         'PORT': '3306'
     }
@@ -143,3 +143,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
