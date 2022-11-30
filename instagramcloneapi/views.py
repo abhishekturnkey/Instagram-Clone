@@ -246,7 +246,7 @@ class UserFeeds(APIView):
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     message='TOKEN VALIDATION FAILED')
 
-            posts = Post.objects.all()
+            posts = Post.objects.all().order_by('-created')
             serializer = PostSerializer(posts, many=True)
             return CreateResponse.success(serializer.data)
 
@@ -311,7 +311,6 @@ class PostView(APIView):
                 return CreateResponse.failed("TOKEN NOT FOUND", status_code=status.HTTP_401_UNAUTHORIZED, message='JWT TOKEN REQUIRED')
 
             token = token.split(" ")[1]
-            print(token)
             try:
                 payload = JwtToken.decode(token)
                 user_id = payload["user_id"]
@@ -323,12 +322,12 @@ class PostView(APIView):
                     message='TOKEN VALIDATION FAILED')
 
             try:
-                print(request.FILES['image'])
                 file_extension = os.path.splitext(
                     str(request.FILES['image']))[1]
 
                 filename = f"posts/{user_id}/" + datetime.now().strftime("%d-%m-%YT") + \
                     str(random.randint(10 ** 10, (10 ** 10) * 9)) + file_extension
+                    
 
                 session = Session(
                     aws_access_key_id=ACCESS_KEY_ID,
@@ -341,21 +340,26 @@ class PostView(APIView):
                 )
 
                 file_url = f"https://{BUCKET_NAME}.s3.ap-south-1.amazonaws.com/{filename}"
+                data = request.data
 
-                
                 required_data = {
                     "user": user_id,
                     "image": file_url,
-                    "title": request.data["title"],
-                    "description": request.data["description"]
                 }
-                print(file_url, required_data)
+
+                if "title" in data.keys():
+                    required_data["title"] = request.data["title"]
+                if "description" in data.keys():
+                    required_data["description"] = request.data["description"]
+
 
                 postSerializer = PostSerializer(data=required_data)
 
                 if postSerializer.is_valid():
-                    postSerializer.save()
-                    return CreateResponse.success(data=postSerializer.data)
+                    user = Profile.objects.get(user_id= user_id)
+                    user.id = user_id
+                    postSerializer.save(user=user)
+                    return CreateResponse.success(data=postSerializer.data, status_code=status.HTTP_201_CREATED)
                 else:
                     print(postSerializer.error_messages)
                     return CreateResponse.failed(data=required_data, status_code=status.HTTP_400_BAD_REQUEST, message="PROFILE ALREADY CREATED")
@@ -497,20 +501,46 @@ class ProfileView(APIView):
                     message='TOKEN VALIDATION FAILED')
 
             try:
+                file_extension = os.path.splitext(
+                    str(request.FILES['image']))[1]
+
+                filename = f"posts/{user_id}/" + datetime.now().strftime("%d-%m-%YT") + \
+                    str(random.randint(10 ** 10, (10 ** 10) * 9)) + file_extension
+                    
+
+                session = Session(
+                    aws_access_key_id=ACCESS_KEY_ID,
+                    aws_secret_access_key=SECRET_ACCESS_KEY
+                )
+
+                s3 = session.resource('s3')
+                s3.Bucket(BUCKET_NAME).put_object(
+                    Key=filename, Body=request.FILES['image']
+                )
+
+                file_url = f"https://{BUCKET_NAME}.s3.ap-south-1.amazonaws.com/{filename}"
+                data = request.data
+
+                required_data = {
+                    "user": user_id,
+                    "image": file_url,
+                }
+
+                if "name" in data.keys():
+                    required_data["name"] = request.data["name"]
+                if "username" in data.keys():
+                    required_data["username"] = request.data["username"]
+
+
                 profile = Profile.objects.get(user_id = user_id)
-                # object = {
-                #     "name": request.data["name"],
-                #     "user": profile.user,
-                #     "username": profile.username
-                # }
-                profileSerializer = ProfileSerializer(profile, data=request.data, partial=True)
+                profileSerializer = ProfileSerializer(profile, data=required_data, partial=True)
 
                 if profileSerializer.is_valid():
                     profileSerializer.save()
-                    return CreateResponse.success(data=profileSerializer.data)
+                    return CreateResponse.success(data=profileSerializer.data, status_code=status.HTTP_201_CREATED)
                 else:
                     print(profileSerializer.errors)
-                    return CreateResponse.failed(data="", status_code=status.HTTP_400_BAD_REQUEST, message="PROFILE ALREADY CREATED")
+                    return CreateResponse.failed(status_code=status.HTTP_400_BAD_REQUEST, message="PROFILE ALREADY CREATED")
 
             except Exception as exception:
                 print(exception)

@@ -3,6 +3,7 @@ from rest_framework import serializers
 from instagramcloneapi.models import User, Post, Profile
 
 class ProfileDummySerializer(serializers.ModelSerializer):
+
     '''
     ProfileSerializer
     '''
@@ -13,7 +14,7 @@ class ProfileDummySerializer(serializers.ModelSerializer):
         '''
         model = Post
         # depth = 1
-        fields = ['image', 'id']
+        fields = ['image', 'user_id']
 
 
 
@@ -33,6 +34,7 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+
     '''
     ProfileSerializer
     '''
