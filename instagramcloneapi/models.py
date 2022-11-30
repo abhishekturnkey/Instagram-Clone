@@ -6,23 +6,13 @@ def upload_to(instance, filename):
 
 
 class User(models.Model):
-    phoneNumber = models.CharField(max_length=14, blank=True, null=True)
-    email = models.CharField(max_length=100, blank=True, null=True, default='')
+    phoneNumber = models.CharField(max_length=14, blank=True, null=True, unique=True)
+    email = models.CharField(max_length=100, blank=True, null=True, default='', unique=True)
     password = models.CharField(max_length=100, blank=False)
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
         return "User Model"
-
-
-class Post(models.Model):
-    title = models.CharField(max_length=200, blank=True)
-    description = models.CharField(
-        max_length=400, blank=True, null=True, default='')
-    image = models.URLField(max_length=512, blank=True, null=True)
-    user = models.ForeignKey(User, related_name='posts',
-                             on_delete=models.CASCADE)
-    created = models.DateTimeField(auto_now_add=True)
 
 
 class Profile(models.Model):
@@ -32,3 +22,12 @@ class Profile(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     user = models.OneToOneField(
         User, related_name='profile', on_delete=models.CASCADE, unique=True)
+
+class Post(models.Model):
+    title = models.CharField(max_length=200, blank=True)
+    description = models.CharField(
+        max_length=400, blank=True, null=True, default='')
+    image = models.URLField(max_length=512, blank=True, null=True)
+    user = models.ForeignKey(Profile, related_name='posts',
+                             on_delete=models.CASCADE, db_column='user_id')
+    created = models.DateTimeField(auto_now_add=True)

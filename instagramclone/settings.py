@@ -90,8 +90,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'instagram',
-        'USER': 'root',
-        'PASSWORD': 'password',
+        'USER': 'abhishek',
+        'PASSWORD': 'abhishek',
         'HOST': '127.0.0.1',
         'PORT': '3306'
     }
@@ -120,6 +120,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+ALLOWED_HOSTS=['*',]
 
 
 # Internationalization

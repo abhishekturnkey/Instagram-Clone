@@ -13,9 +13,9 @@ import os
 
 import random
 
-BUCKET_NAME = 'BUCKET_NAME'
-ACCESS_KEY_ID = "ACCESS_KEY_ID"
-SECRET_ACCESS_KEY = "SECRET_ACCESS_KEY"
+BUCKET_NAME = 'sample-bucket-hic'
+ACCESS_KEY_ID = "AKIA2BQT6NQRQOJLRUSG"
+SECRET_ACCESS_KEY = "ji8Kinbxd13hbgKWfT0Q0urnDn+9rhcn3yc32ZaD"
 
 
 class CreateResponse:
@@ -127,7 +127,16 @@ class RegisterView(APIView):
 
             if user.is_valid():
                 user.save()
-                return CreateResponse.success(user.data, status_code=status.HTTP_201_CREATED, message='USER CREATED')
+                data = {
+                    "phoneNumber": phone_number,
+                    "email": email,  
+                    "user_id": user.data.get("id")
+                }
+                object = {
+                    "data": user.data,
+                    "token": JwtToken.encode(data)
+                }
+                return CreateResponse.success(object, status_code=status.HTTP_201_CREATED, message='USER CREATED')
 
             return CreateResponse.failed("Invalid data", status_code=status.HTTP_400_BAD_REQUEST, message='BAD REQUEST')
 
@@ -148,6 +157,7 @@ class LoginView(APIView):
 
         try:
             data = JSONParser().parse(request)
+            print(data)
 
             if "phoneNumber" in data.keys():
                 phone = data["phoneNumber"]
@@ -162,8 +172,13 @@ class LoginView(APIView):
 
                     token = JwtToken.encode(
                         {"email": user['email'], "user_id": user["id"]})
+                    object = {
+                        "data": user,
+                        "token": token
+                    }
 
-                    return CreateResponse.success(data={"token": token})
+                    print(object)
+                    return CreateResponse.success(data=object)
 
                 except Exception as exception:
                     print(exception)
@@ -185,7 +200,11 @@ class LoginView(APIView):
 
                     token = JwtToken.encode(
                         {"email": user["email"], "user_id": user["id"]})
-                    return CreateResponse.success(data={"token": token})
+                    object = {
+                        "data": user,
+                        "token": token
+                    }
+                    return CreateResponse.success(data=object)
 
                 except Exception as exception:
                     print(exception)
@@ -238,7 +257,7 @@ class UserFeeds(APIView):
 
 class PostView(APIView):
     """
-    ProfileView
+    PostView
     """
 
     def get(self, request):
@@ -292,6 +311,7 @@ class PostView(APIView):
                 return CreateResponse.failed("TOKEN NOT FOUND", status_code=status.HTTP_401_UNAUTHORIZED, message='JWT TOKEN REQUIRED')
 
             token = token.split(" ")[1]
+            print(token)
             try:
                 payload = JwtToken.decode(token)
                 user_id = payload["user_id"]
@@ -303,6 +323,7 @@ class PostView(APIView):
                     message='TOKEN VALIDATION FAILED')
 
             try:
+                print(request.FILES['image'])
                 file_extension = os.path.splitext(
                     str(request.FILES['image']))[1]
 
@@ -321,19 +342,22 @@ class PostView(APIView):
 
                 file_url = f"https://{BUCKET_NAME}.s3.ap-south-1.amazonaws.com/{filename}"
 
+                
                 required_data = {
                     "user": user_id,
                     "image": file_url,
                     "title": request.data["title"],
                     "description": request.data["description"]
                 }
+                print(file_url, required_data)
 
-                post = PostSerializer(data=required_data)
+                postSerializer = PostSerializer(data=required_data)
 
-                if post.is_valid():
-                    post.save()
-                    return CreateResponse.success(data=post.data)
+                if postSerializer.is_valid():
+                    postSerializer.save()
+                    return CreateResponse.success(data=postSerializer.data)
                 else:
+                    print(postSerializer.error_messages)
                     return CreateResponse.failed(data=required_data, status_code=status.HTTP_400_BAD_REQUEST, message="PROFILE ALREADY CREATED")
 
             except Exception as exception:
@@ -353,32 +377,24 @@ class ProfileView(APIView):
     ProfileView
     """
 
-    def get(self, request):
+    def get(self, request, id):
         """
         get user details
         """
         try:
-            token = request.META.get("HTTP_AUTHORIZATION", "")
-
-            if not token:
-                return CreateResponse.failed("TOKEN NOT FOUND", status_code=status.HTTP_401_UNAUTHORIZED, message='JWT TOKEN REQUIRED')
-
-            token = token.split(" ")[1]
+            # user_id = self.args.ge
+            print(id)
             try:
-                payload = JwtToken.decode(token)
-                user_id = payload["user_id"]
-            except Exception as exception:
-                print(exception)
-                return CreateResponse.failed(
-                    "INVALID TOKEN",
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    message='TOKEN VALIDATION FAILED')
+                item = Profile.objects.get(user=id)
+                posts = Post.objects.filter(user=id)
+                postSerializer = PostSerializer(posts, many=True)
+                profileSerializer = ProfileSerializer(item, many=False)
+                object = profileSerializer.data
+                # object["profile"] = profileSerializer.data
+                object["posts"] = postSerializer.data
 
-            try:
-                item = Profile.objects.get(user=user_id)
-                profile = ProfileSerializer(item, many=False).data
-
-                return CreateResponse.success(data=profile)
+                print(postSerializer.data)
+                return CreateResponse.success(data=object)
 
             except Exception as exception:
                 print(exception)
@@ -386,6 +402,7 @@ class ProfileView(APIView):
                     "NOT FOUND",
                     status_code=status.HTTP_400_BAD_REQUEST,
                     message='PROFILE NOT FOUND')
+
 
         except Exception as exception:
             print(exception)
@@ -414,6 +431,7 @@ class ProfileView(APIView):
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     message='TOKEN VALIDATION FAILED')
 
+            print(user_id)
             try:
                 file_extension = os.path.splitext(
                     str(request.FILES['image']))[1]
@@ -448,6 +466,53 @@ class ProfileView(APIView):
                     return CreateResponse.failed(data=required_data, status_code=status.HTTP_400_BAD_REQUEST, message="PROFILE ALREADY CREATED")
 
             except Exception as exception:
+                print(profile)
+                return CreateResponse.failed(
+                    "ERROR",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    message='Failed to create profile')
+
+        except Exception as exception:
+            print(exception)
+            return CreateResponse.failed("FAILED", status_code=status.HTTP_400_BAD_REQUEST, message='INTERNAL SERVER ERROR')
+
+    def put(self, request):
+        try:
+            token = request.META.get("HTTP_AUTHORIZATION", "")
+
+            if not token:
+                return CreateResponse.failed("TOKEN NOT FOUND", status_code=status.HTTP_401_UNAUTHORIZED, message='JWT TOKEN REQUIRED')
+
+            token = token.split(" ")[1]
+            print(token)
+            try:
+                payload = JwtToken.decode(token)
+                user_id = payload["user_id"]
+                print(user_id)
+            except Exception as exception:
+                print(exception)
+                return CreateResponse.failed(
+                    "INVALID TOKEN",
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    message='TOKEN VALIDATION FAILED')
+
+            try:
+                profile = Profile.objects.get(user_id = user_id)
+                # object = {
+                #     "name": request.data["name"],
+                #     "user": profile.user,
+                #     "username": profile.username
+                # }
+                profileSerializer = ProfileSerializer(profile, data=request.data, partial=True)
+
+                if profileSerializer.is_valid():
+                    profileSerializer.save()
+                    return CreateResponse.success(data=profileSerializer.data)
+                else:
+                    print(profileSerializer.errors)
+                    return CreateResponse.failed(data="", status_code=status.HTTP_400_BAD_REQUEST, message="PROFILE ALREADY CREATED")
+
+            except Exception as exception:
                 print(exception)
                 return CreateResponse.failed(
                     "ERROR",
@@ -457,3 +522,4 @@ class ProfileView(APIView):
         except Exception as exception:
             print(exception)
             return CreateResponse.failed("FAILED", status_code=status.HTTP_400_BAD_REQUEST, message='INTERNAL SERVER ERROR')
+        
